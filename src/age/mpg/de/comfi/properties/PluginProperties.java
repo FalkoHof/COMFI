@@ -123,15 +123,18 @@ public class PluginProperties {
     public String getUrlCYC2008(){
     	return  props.getProperty("urlCYC2008").trim();
     }
-    
-    
-    public String getUrlUniProt(){
-    	return  props.getProperty("urlUniProt").trim();
+        
+    public String getUrlYeastFile(){
+    	return  props.getProperty("urlYeastFile").trim();
     }
     
     
-    public String getUrlYeastFile(){
-    	return  props.getProperty("urlYeastFile").trim();
+    public String getUniProtFTP(){
+    	return props.getProperty("ftpSeverUniprot").trim();
+    }
+    
+    public String getUniProtServerDir(){
+    	return props.getProperty("ftpDirUniprot").trim();
     }
     
         

@@ -1,20 +1,13 @@
 package age.mpg.de.comfi.downloader;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
 import java.security.InvalidParameterException;
 import java.util.Enumeration;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
-import java.util.zip.ZipInputStream;
-
 import javax.swing.JOptionPane;
 
 import org.apache.commons.io.FileUtils;
@@ -22,7 +15,6 @@ import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
 
 import age.mpg.de.comfi.managers.TaskManagerManager;
-import age.mpg.de.comfi.model.ComplexFinderModel;
 import age.mpg.de.comfi.properties.PluginProperties;
 
 import cytoscape.logger.CyLogger;
@@ -38,7 +30,8 @@ public class DependenciesDownloader implements Task {
 	private boolean downloadComplete = false;
 	private File file;
 	private Thread runner;
-	
+	private Long fileSize = -1L;
+	private boolean sizeCheck = false;
 	public static final byte DOWNLOAD_UNIPROT_MAPPING_FILE = 0, DOWNLOAD_HOMOLOGENE = 1,DOWNLOAD_YEAST_GENOME = 2, DOWNLOAD_CORUM = 3, DOWNLOAD_CYC2008 = 4;
 	
 	private byte parameter = -1;
@@ -61,7 +54,7 @@ public class DependenciesDownloader implements Task {
 				FileUtils.forceMkdir(dir);
 			
 			switch(parameter){
-				case DOWNLOAD_UNIPROT_MAPPING_FILE:	copyFileFromFTP(PluginProperties.getInstance().getUrlUniProt(), PluginProperties.getInstance().getDependenciesFolder() + PluginProperties.getInstance().getUniProtMappingFileName());
+				case DOWNLOAD_UNIPROT_MAPPING_FILE:	copyFileFromFTP(PluginProperties.getInstance().getUniProtFTP(), PluginProperties.getInstance().getUniProtServerDir(), PluginProperties.getInstance().getUniProtMappingFileName(), PluginProperties.getInstance().getDependenciesFolder() + PluginProperties.getInstance().getUniProtMappingFileName());
 					break;
 				case DOWNLOAD_HOMOLOGENE:			copyFileFromUrlCytoscape(PluginProperties.getInstance().getUrlHomoloGene(),PluginProperties.getInstance().getDependenciesFolder() +  PluginProperties.getInstance().getHomoloGeneFileName());
 					break;
@@ -122,51 +115,23 @@ public class DependenciesDownloader implements Task {
 			taskMonitor.setPercentCompleted(100);
 	    	FileUtils.forceDelete(file);
 	}
-
-	
-	
-	
-
-	//method for getin the size of the uniprot mapping file --> needed for progressbar
-	private long getIdMappigFileSize(){
-
-		FTPClient client = new FTPClient();
-        long size = 0;
-        logger.info("getting idmapping.dat.gz size");
-
-		try {
-        	client.connect("ftp.ebi.ac.uk");
-            client.login("anonymous", "anonymous");
-            client.setFileType(FTPClient.BINARY_FILE_TYPE);
-            
-            FTPFile[] ftpFile = client.listFiles("/pub/databases/uniprot/current_release/knowledgebase/idmapping/");
-            //mapping file is the biggest in the directory so just get the size of the biggest file.
-            for (FTPFile ftp: ftpFile){
-            	if (size < ftp.getSize())
-            		size = ftp.getSize();
-            }    
-                
-			} catch (IOException e) {
-				JOptionPane.showMessageDialog(null, "An error occoured while getting the uniprot mapping file size.", "PathwayFinder - Download/update files", JOptionPane.ERROR_MESSAGE);
-		        e.printStackTrace();
-			}
-		return size;
-	}
-	
-	
 	
 	//method for copying the uniprot file from the uniprot ftp
-	private void copyFileFromFTP (String source, String target) throws IOException, InterruptedException{
+	private void copyFileFromFTP (String ftpName, String dir, String fileName, String target) throws IOException, InterruptedException{
 		taskMonitor.setStatus("Downloding: " + target);
 		taskMonitor.setPercentCompleted(0);
 		file  = new File(target);
 		
-		long fileSize = getIdMappigFileSize();
-		
-		
 		//start a new thread that downloads the file
-		runner = new Thread(new UniProtDownloader(new URL(source), file));
+		runner = new Thread(new UniProtDownloader(ftpName, dir, fileName, file));
 		runner.start();
+		
+		
+		//waits till the file size is retrived
+		while (!sizeCheck){
+			Thread.sleep(2000);
+		}
+		
 		
 		//checks how much of the file has been downloaded and sets the progressbar
 		while (!downloadComplete){
@@ -178,6 +143,7 @@ public class DependenciesDownloader implements Task {
 			
 			//if the file exists check for size and set progress bar, else wait
 			if (file.exists()){
+				System.out.println("Downloading... \t" + FileUtils.sizeOf(file) + "/" + fileSize);
 				taskMonitor.setPercentCompleted(TaskManagerManager.getInstance().getPercentage(FileUtils.sizeOf(file),fileSize));
 				try {
 					Thread.sleep(3000);
@@ -201,25 +167,56 @@ public class DependenciesDownloader implements Task {
 	
 	class UniProtDownloader implements Runnable{
 		
-		URL url;
+		String ftpName;
+		String dirName;
+		String fileName;
 		File targetFile;
 		
-		public UniProtDownloader(URL url,File targetFile){
-			this.url = url;
+		public UniProtDownloader(String ftpName, String dirName, String fileName,File targetFile){
+			this.ftpName = ftpName;
+			this.dirName = dirName;
+			this.fileName = fileName;	
 			this.targetFile = targetFile;
 		}
 
 		@Override
 		public void run() {
+
+			FTPClient client = new FTPClient();
+	        logger.info("getting idmapping.dat.gz size");
+
 			try {
-				FileUtils.copyURLToFile(url, file);
-				downloadComplete = true;
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			
-		}
-		
+				long start = System.currentTimeMillis();
+				System.out.println("Connecting to ftp: " + ftpName);
+	        	client.connect(ftpName);
+	            client.login("anonymous", "anonymous");
+	            System.out.println("Client reply code: " + client.getReplyCode());
+	            client.setFileType(FTPClient.BINARY_FILE_TYPE);
+	            client.setBufferSize(16384);
+	            FTPFile[] ftpFile = client.listFiles(dirName);
+	            //mapping file is the biggest in the directory so just get the size of the biggest file.
+	            for (FTPFile ftp: ftpFile){
+	            	if (fileSize < ftp.getSize()){
+	            		fileSize = ftp.getSize();
+	            	}
+	            }
+	            sizeCheck = true;
+	            
+	            FileOutputStream fos = new FileOutputStream(targetFile);
+	            System.out.println("Starting retrieving.... URL: " + dirName +fileName);
+	            client.retrieveFile(dirName +fileName, fos);
+				long end = System.currentTimeMillis();
+				long time = end - start;
+				System.out.println("Download time (min): " + ((time/1000.0)/60.0));
+				fos.close(); 
+	            client.logout();
+	            client.disconnect();
+				} catch (IOException e) {
+					JOptionPane.showMessageDialog(null, "An error occoured while getting the uniprot mapping file size.", "PathwayFinder - Download/update files", JOptionPane.ERROR_MESSAGE);
+			        e.printStackTrace();
+				}
+			downloadComplete = true;
+		}		
 	}
 	
 	
