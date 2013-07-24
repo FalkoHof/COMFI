@@ -199,6 +199,7 @@ public class IndexDialogues extends JDialog {
 					TaskManagerManager.getInstance().manageQueuedTasks();
 					JOptionPane.showMessageDialog(null, "Index successfully build! \nUnecessary files have been deleted.","Complex Finder - (re)indexing", JOptionPane.INFORMATION_MESSAGE);
 					logger.info("Index successfully build");
+					checkDependencies();
 				}
 				else{
 					String message = "The following files are mising:\n";

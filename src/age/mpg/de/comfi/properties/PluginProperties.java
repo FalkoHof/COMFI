@@ -104,12 +104,6 @@ public class PluginProperties {
     	return  props.getProperty("urlZippedDependencies").trim();
     }
     
-    
-    public String getUrlLuceneIndex(){
-    	return  props.getProperty("urlLuceneIndex").trim();
-    }
-    
-    
     public  String getUrlHomoloGene(){
     	return  props.getProperty("urlHomologene").trim();
 
@@ -117,8 +111,7 @@ public class PluginProperties {
     
     public String getUrlCORUM(){
     	return  props.getProperty("urlCORUM").trim();
-    }
-    
+    }   
     
     public String getUrlCYC2008(){
     	return  props.getProperty("urlCYC2008").trim();
@@ -128,7 +121,6 @@ public class PluginProperties {
     	return  props.getProperty("urlYeastFile").trim();
     }
     
-    
     public String getUniProtFTP(){
     	return props.getProperty("ftpSeverUniprot").trim();
     }
@@ -136,12 +128,10 @@ public class PluginProperties {
     public String getUniProtServerDir(){
     	return props.getProperty("ftpDirUniprot").trim();
     }
-    
-        
+           
     public String[] getFilenames(){
         return (String[]) props.getProperty("filenames").trim().split(";");
     }
-
     
     public String [] getDefaultOrganisms(){
     	return (String []) props.getProperty("organisms").trim().split(";");
