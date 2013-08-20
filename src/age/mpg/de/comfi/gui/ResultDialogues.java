@@ -108,7 +108,9 @@ public class ResultDialogues extends JDialog{
 		table.getColumnModel().getColumn(2).setPreferredWidth(20);
 		table.getColumnModel().getColumn(3).setPreferredWidth(20);
 		table.getColumnModel().getColumn(4).setPreferredWidth(20);
-		table.getColumnModel().getColumn(5).setPreferredWidth(20);
+		table.getColumnModel().getColumn(5).setPreferredWidth(70);
+		table.getColumnModel().getColumn(6).setPreferredWidth(30);
+
 		table.setRowSorter(sorter);
 
 		
@@ -144,7 +146,7 @@ public class ResultDialogues extends JDialog{
 
 		//create a JScrollPane and set the	
 		JScrollPane listScroller = new JScrollPane(table, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-		listScroller.setPreferredSize((new Dimension(700, 300)));
+		listScroller.setPreferredSize((new Dimension(900, 300)));
 		listScroller.setBorder(BorderFactory.createTitledBorder("Found Complexes:"));
 		listScroller.setBackground(this.getBackground());		
 		

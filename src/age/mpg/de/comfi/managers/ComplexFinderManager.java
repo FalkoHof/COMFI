@@ -22,6 +22,7 @@ import age.mpg.de.comfi.ComplexFinder;
 import age.mpg.de.comfi.cytoscape.CytoscapeAttributeSetter;
 import age.mpg.de.comfi.databaseparser.ProteinComplexParser;
 import age.mpg.de.comfi.model.ComplexFinderModel;
+import age.mpg.de.comfi.subcomplexes.TreeSorter;
 
 
 public class ComplexFinderManager {
@@ -39,10 +40,9 @@ public class ComplexFinderManager {
 		// queues the tasks to be executed		
 		TaskManagerManager.getInstance().queueTask(new ProteinComplexParser());
 		TaskManagerManager.getInstance().queueTask(new ComplexFinder());
+		TaskManagerManager.getInstance().queueTask(new TreeSorter());
 		TaskManagerManager.getInstance().queueTask(new CytoscapeAttributeSetter());
-		TaskManagerManager.getInstance().manageQueuedTasks();
-		
-		
+		TaskManagerManager.getInstance().manageQueuedTasks();		
 		ComplexFinderModel.getInstance().setFinished(true);
 		
 		

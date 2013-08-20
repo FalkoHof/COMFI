@@ -27,7 +27,7 @@ public class TableModelComplexes extends AbstractTableModel {
 
 	private List<FoundProteinComplex> datalist;
 	
-	private	final String[] columns = {"Protein Complex","NodeId","# Members", "Homology", "Organism", "Select Node"};
+	private	final String[] columns = {"Protein Complex","NodeId","# Members", "Homology", "Organism","Has subcomplexes", "Select Node"};
 	
 	
 	public static final int COMPLEX_NAME_COLUMN = 0;
@@ -35,8 +35,9 @@ public class TableModelComplexes extends AbstractTableModel {
 	public static final int NUMBER_OF_NODES_COLUMN = 2;
 	public static final int HOMOLOGY_COLUMN = 3;
 	public static final int ORGANISM_COLUMN = 4;
-	public static final int SELECT_COLUMN = 5;
-	public static final int NUMBER_COLUMNS = 6;
+	public static final int SUBCOMPLEX_COLUMN = 5;
+	public static final int SELECT_COLUMN = 6;
+	public static final int NUMBER_COLUMNS = 7;
 
 		
 	public TableModelComplexes(List<FoundProteinComplex> list){
@@ -99,6 +100,8 @@ public class TableModelComplexes extends AbstractTableModel {
 		    	return result.isHomologue();
 		    case ORGANISM_COLUMN:
 		    	return result.getOrganism();
+		    case SUBCOMPLEX_COLUMN:
+		    	return result.hasSubComplex();
 		    case SELECT_COLUMN:
 		    	return result.isSelect();
 		    default:

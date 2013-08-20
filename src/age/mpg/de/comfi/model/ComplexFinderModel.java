@@ -56,8 +56,8 @@ public class ComplexFinderModel {	//Model class - Holding variables/values for s
 	public static final String COLUMN_TITLE_IS_IN_COMPLEX = "Is in Complex";
 	public static final String COLUMN_TITLE_IS_IN_COMPLEX_LIST = "List of Complexes";
 	public static final String COLUMN_TITLE_PUBMED_ID = "Pubmed ID";
+	public static final String COLUMN_TITLE_SUBCOMPLEXES = "Subcomplexes";
 
-	
 	
 	
 	//general parameters
@@ -93,9 +93,7 @@ public class ComplexFinderModel {	//Model class - Holding variables/values for s
 	
 	
     public ComplexFinderModel (){
-    	
-    	
-       	
+    		
     }
     
     public static ComplexFinderModel getInstance() {

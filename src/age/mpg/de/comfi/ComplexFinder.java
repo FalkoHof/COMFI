@@ -21,13 +21,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-
 import age.mpg.de.comfi.cytoscape.CytoscapeAttributeGetter;
 import age.mpg.de.comfi.index.IdConverter;
 import age.mpg.de.comfi.model.ComplexFinderModel;
 import age.mpg.de.comfi.utilityobjects.FoundProteinComplex;
 import age.mpg.de.comfi.utilityobjects.ParsedProteinComplex;
-
 import cytoscape.task.Task;
 import cytoscape.task.TaskMonitor;
 
@@ -121,7 +119,7 @@ public class ComplexFinder implements Task{
 				foundComplexList.add(new FoundProteinComplex("Cpx" + oneComplex.getId(), oneComplex.getFullName(), oneComplex.getInteractors(), yeastHomologueComplexList, oneComplex.getTaxId(),true, FoundProteinComplex.YEAST, oneComplex.getPubmedId()));
 			
 		}	
-		ComplexFinderModel.getInstance().setFoundProteinComplexes(foundComplexList);
+		ComplexFinderModel.getInstance().setFoundProteinComplexes(foundComplexList);		
 	}
 		
 

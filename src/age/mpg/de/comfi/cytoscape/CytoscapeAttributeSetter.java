@@ -22,11 +22,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-
 import age.mpg.de.comfi.managers.TaskManagerManager;
 import age.mpg.de.comfi.model.ComplexFinderModel;
 import age.mpg.de.comfi.utilityobjects.FoundProteinComplex;
-
 import cytoscape.CyEdge;
 import cytoscape.CyNetwork;
 import cytoscape.CyNode;
@@ -44,7 +42,7 @@ import cytoscape.visual.VisualStyle;
 
 public class CytoscapeAttributeSetter implements Task {
 	
-	private List<FoundProteinComplex> foundProteinComplexList;
+	private List<FoundProteinComplex> foundComplexesList;
 	private int numFoundComplexes;
 	private CyAttributes nodeAttributes;
 	
@@ -59,22 +57,17 @@ public class CytoscapeAttributeSetter implements Task {
 	private	CyNetwork network;
 	
 	public 	CytoscapeAttributeSetter(){
-		
-		
+				
 	}
-
 	
 	@Override
 	public void run() {
 		//initialize variables
-		foundProteinComplexList = ComplexFinderModel.getInstance().getFoundProteinComplexes();
-		numFoundComplexes = foundProteinComplexList.size();
+		foundComplexesList = ComplexFinderModel.getInstance().getFoundProteinComplexes();
+		numFoundComplexes = foundComplexesList.size();
 		nodeAttributes = Cytoscape.getNodeAttributes();
-
 		setComplexFinderResults();
 	}
-	
-	
 	
 	
 	public void setComplexFinderResults(){
@@ -93,80 +86,57 @@ public class CytoscapeAttributeSetter implements Task {
 		if (interrupted)
 			deleteNestedNetworks();
 	}
-	
-	
-	
+
+
 	private void deleteNestedNetworks(){
 		for(CyNetwork network : networkList)
 			Cytoscape.destroyNetwork(network);
 	}
 	
-	
-	
-	private void addToNetwork(){
-		
-		String networkName = ComplexFinderModel.getInstance().getTargetNetworkName();
-		
-		taskMonitor.setStatus("Adding complexes to the network...");
-		taskMonitor.setPercentCompleted(-1);
-		
-		//checks if the complexes should be added to an existing network of if a new network should be created
-		if (networkName.equals(ComplexFinderModel.CREATE_NEW_NETWORK)){
-			network = Cytoscape.createNetwork(complexNodeList, cyEdgeList, "Found Protein Complexes");
-			networkList.add(network);
-		}
-		else{
-			network = Cytoscape.getNetwork(networkName);
-			int counter = 0;
-			for (CyNode node : complexNodeList){
-				taskMonitor.setPercentCompleted(TaskManagerManager.getInstance().getPercentage(counter, complexNodeList.size()));
-				counter++;
-				network.addNode(node);
-			}
-			taskMonitor.setPercentCompleted(100);
-		
-			taskMonitor.setStatus("Adding edges to the network...");
-			taskMonitor.setPercentCompleted(-1);
-			counter = 0;
-			for (CyEdge edge : cyEdgeList){
-				taskMonitor.setPercentCompleted(TaskManagerManager.getInstance().getPercentage(counter, cyEdgeList.size()));
-				counter++;
-				network.addEdge(edge);
-			}
-		}
-		taskMonitor.setPercentCompleted(100);
-	}
-	
-		
-	
 	// create new nodes for found protein complexes
 	private void createComplexNodes(){
-		
+			
 		taskMonitor.setStatus("Adding complexes...");
 		taskMonitor.setPercentCompleted(-1);
-		int counter = 0;
-		for (FoundProteinComplex complex: foundProteinComplexList){
-			taskMonitor.setPercentCompleted(TaskManagerManager.getInstance().getPercentage(counter, numFoundComplexes));
-			counter++;
-			CyNode node = Cytoscape.getCyNode(complex.getCyGroupID(), true);
+		//loop over the list with found complexes and create new nodes for each complex
+		for (int i = 0; i< foundComplexesList.size(); i++){
+			taskMonitor.setPercentCompleted(TaskManagerManager.getInstance().getPercentage(i, numFoundComplexes));
+			CyNode node = Cytoscape.getCyNode(foundComplexesList.get(i).getCyGroupID(), true);
 			complexNodeList.add(node);
-			setNodeAttributes(node, complex);
 		}	
+				
+		taskMonitor.setStatus("Setting complex attributes...");
+		//loop over all the just created nodes and set its attributes in cytoscape
+		for (int i = 0; i< foundComplexesList.size(); i++)
+			setNodeAttributes(complexNodeList.get(i), foundComplexesList.get(i));
+
 		taskMonitor.setPercentCompleted(100);
 	}
+	
 	
 	// sets Node Attributes in cytoscape
 	private void setNodeAttributes(CyNode node, FoundProteinComplex complex) {
-				
+		
+		//if the complex has subcomplexes get the list including the ids for subcomplexes else get the normal id list
+		List<String> nodeIdList = new ArrayList<String>();
+		nodeIdList =  complex.hasSubComplex() ? complex.getNodeIdListWithSubcomplexes(): complex.getNodeIdList();
+		
+		//Standard attributes to be set
 		nodeAttributes.setAttribute(node.getIdentifier(), ComplexFinderModel.COLUMN_TITLE_COMPLEX_BOOLEAN, true);
-		nodeAttributes.setListAttribute(node.getIdentifier(), ComplexFinderModel.COLUMN_TITLE_COMPLEX_MEMBERS, complex.getComplexMembers());
 		nodeAttributes.setAttribute(node.getIdentifier(), ComplexFinderModel.COLUMN_TITLE_COMPLEX_NAME, complex.getProteinComplexName());
 		nodeAttributes.setAttribute(node.getIdentifier(), ComplexFinderModel.COLUMN_TITLE_SOURCE_ORGANISM, complex.getOrganism());
 		nodeAttributes.setAttribute(node.getIdentifier(),ComplexFinderModel.COLUMN_TITLE_TAX_ID, complex.getTaxID());
-		
+		nodeAttributes.setListAttribute(node.getIdentifier(), ComplexFinderModel.COLUMN_TITLE_COMPLEX_MEMBERS, complex.getComplexMembers());
+
+		//set the subcomplexes attribute if applicable
+		if (complex.hasSubComplex())
+			nodeAttributes.setListAttribute(node.getIdentifier(),ComplexFinderModel.COLUMN_TITLE_SUBCOMPLEXES, complex.getSubComplexesIds());
+			
+		//if there is a publication describing the interaction, set it as attribute
 		if (complex.getPubmedID() != null)
 			nodeAttributes.setAttribute(node.getIdentifier(),ComplexFinderModel.COLUMN_TITLE_PUBMED_ID, complex.getPubmedID());
 		
+		//attributes to be set when the complex is found via homology search
 		if (complex.isHomologue()){
 			if (complex.isHumanHomologue()){
 				nodeAttributes.setAttribute(node.getIdentifier(), ComplexFinderModel.COLUMN_TITLE_HUMAN_HOMOLOGUES_BOOLEAN, true);
@@ -180,24 +150,25 @@ public class CytoscapeAttributeSetter implements Task {
 		else
 			nodeAttributes.setListAttribute(node.getIdentifier(), ComplexFinderModel.COLUMN_TITLE_COMPLEX_MEMBERS_NODE_IDS, (List<String>) complex.getNodeIdList());
 		
-		for (String nodeId : complex.getNodeIdList()){
-			List<String> isInComplexes = new ArrayList<String>();					
-			isInComplexes.add(complex.getCyGroupID());
+			
+		// loop over the node IdList
+		for (String nodeId : nodeIdList){
+			List<String> inComplexesList = new ArrayList<String>();					
+			inComplexesList.add(complex.getCyGroupID());
 			nodeAttributes.setAttribute(nodeId,ComplexFinderModel.COLUMN_TITLE_IS_IN_COMPLEX, true);
 			
 			if (nodeAttributes.hasAttribute(nodeId, ComplexFinderModel.COLUMN_TITLE_IS_IN_COMPLEX_LIST))
-				isInComplexes.addAll( (List<String>) nodeAttributes.getListAttribute(nodeId, ComplexFinderModel.COLUMN_TITLE_IS_IN_COMPLEX_LIST));
+				inComplexesList.addAll((List<String>) nodeAttributes.getListAttribute(nodeId, ComplexFinderModel.COLUMN_TITLE_IS_IN_COMPLEX_LIST));
 			
-			nodeAttributes.setListAttribute(nodeId, ComplexFinderModel.COLUMN_TITLE_IS_IN_COMPLEX_LIST, isInComplexes);
+			nodeAttributes.setListAttribute(nodeId, ComplexFinderModel.COLUMN_TITLE_IS_IN_COMPLEX_LIST, inComplexesList);
 		}	
 	}
-	
-	
 	
 	private void createNewEdges(){
 		
 		taskMonitor.setStatus("Calculating new edges...");
 		taskMonitor.setPercentCompleted(-1);
+		//update attributes
 		
 		int counter = 0;
 		int numOfEdges = Cytoscape.getCyEdgesList().size();
@@ -238,10 +209,16 @@ public class CytoscapeAttributeSetter implements Task {
 			
 			// make the correct new edges 
 			if (sourceInComplex && targetInComplex){
+				//add the target and the source to the list to make connections from nodes --> complexes
+				sourceComplexList.add(source);
+				targetComplexList.add(target);
 				for (String sourceComplex : sourceComplexList){					
 					for (String targetComplex : targetComplexList){
-						newEdge = Cytoscape.getCyEdge(Cytoscape.getCyNode(sourceComplex), Cytoscape.getCyNode(targetComplex), Semantics.INTERACTION, "INTERACTS_WITH_COMPLEX", true, edge.isDirected());
-						cyEdgeList.add(newEdge);
+						//if to check source and target --> no need to add the initial edge again
+						if (!(sourceComplex.equals(source) && targetComplex.equals(target))){
+							newEdge = Cytoscape.getCyEdge(Cytoscape.getCyNode(sourceComplex), Cytoscape.getCyNode(targetComplex), Semantics.INTERACTION, "INTERACTS_WITH_COMPLEX", true, edge.isDirected());
+							cyEdgeList.add(newEdge);
+						}
 					}
 				}
 			}
@@ -263,13 +240,45 @@ public class CytoscapeAttributeSetter implements Task {
 
 	
 	
+	private void addToNetwork(){
+		
+		String networkName = ComplexFinderModel.getInstance().getTargetNetworkName();
+		
+		taskMonitor.setStatus("Adding complexes to the network...");
+		taskMonitor.setPercentCompleted(-1);
+		
+		//checks if the complexes should be added to an existing network of if a new network should be created
+		if (networkName.equals(ComplexFinderModel.CREATE_NEW_NETWORK)){
+			network = Cytoscape.createNetwork(complexNodeList, cyEdgeList, "Found Protein Complexes");
+			networkList.add(network);
+		}
+		else{
+			network = Cytoscape.getNetwork(networkName);
+			for (int i = 0; i <complexNodeList.size(); i++){
+				taskMonitor.setPercentCompleted(TaskManagerManager.getInstance().getPercentage(i, complexNodeList.size()));
+				network.addNode(complexNodeList.get(i));
+			}
+			taskMonitor.setPercentCompleted(100);
+			
+			
+			taskMonitor.setStatus("Adding edges to the network...");
+			taskMonitor.setPercentCompleted(-1);
+			for (int i = 0; i < cyEdgeList.size(); i++){
+				taskMonitor.setPercentCompleted(TaskManagerManager.getInstance().getPercentage(i, cyEdgeList.size()));
+				network.addEdge(cyEdgeList.get(i));
+			}
+		}
+		taskMonitor.setPercentCompleted(100);
+	}
+	
+	
 	private void createNestedNetworks(){
 		
 		taskMonitor.setStatus("Setting nested networks...");
 		taskMonitor.setPercentCompleted(-1);
 
 		int counter = 0;
-		for (FoundProteinComplex complex : foundProteinComplexList){
+		for (FoundProteinComplex complex : foundComplexesList){
 			
 			if (interrupted){
 				ComplexFinderModel.getInstance().setExit(true);
@@ -279,17 +288,16 @@ public class CytoscapeAttributeSetter implements Task {
 			taskMonitor.setPercentCompleted(TaskManagerManager.getInstance().getPercentage(counter, numFoundComplexes));
 			counter++;
 			
-			List<String> nodeIdList = new ArrayList<String>();
-			
-			nodeIdList = complex.getNodeIdList();
+			List<String> nodeIdList = new ArrayList<String>();	
+			nodeIdList =  complex.hasSubComplex() ? complex.getNodeIdListWithSubcomplexes() : complex.getNodeIdList();
 			
 			Set<CyNode>nodeSet = new HashSet<CyNode>();
 
 			for (String id : nodeIdList)
 				nodeSet.add(Cytoscape.getCyNode(id));
-			
-			int index = 0;
+					
 			int[] nodeRootGraphIndexArray = new int[nodeSet.size()];
+			int index = 0;
 			for (CyNode node : nodeSet){
 				nodeRootGraphIndexArray[index] = node.getRootGraphIndex();
 				index++;
@@ -306,7 +314,6 @@ public class CytoscapeAttributeSetter implements Task {
 		}
 		taskMonitor.setPercentCompleted(100);	
 	}
-	
 	
 	
 	private void doLayout(){
@@ -327,12 +334,10 @@ public class CytoscapeAttributeSetter implements Task {
 
 	private void removeNodes(){
 		
-		
 		taskMonitor.setStatus("Removing old nodes and edges...");
 		taskMonitor.setPercentCompleted(-1);
 		int counter = 0;
-		for (FoundProteinComplex complex : foundProteinComplexList){
-			
+		for (FoundProteinComplex complex : foundComplexesList){
 			if (interrupted){
 				ComplexFinderModel.getInstance().setExit(true);
 				break;
@@ -342,8 +347,7 @@ public class CytoscapeAttributeSetter implements Task {
 			counter++;
 			List<String> nodeIdList = new ArrayList<String>();
 			nodeIdList = complex.getNodeIdList();
-	
-	
+		
 			// gets the root graph index of the protein complex members
 			int[]nodeRootGraphIndexArray = new int[nodeIdList.size()];
 			for (int i =0; i<nodeIdList.size(); i++)
