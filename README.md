@@ -13,7 +13,7 @@ If you use COMFI please cite:
 
 [Garmhausen, M. et al. Virtual pathway explorer (viPEr) and pathway enrichment analysis tool (PEANuT): creating and analyzing focus networks to identify cross-talk between molecules and pathways. BMC Genomics 16, 790 (2015).](https://bmcgenomics.biomedcentral.com/articles/10.1186/s12864-015-2017-z)
 
-COMFI is designed to work in concert with the VIPER and PEANuT plugins.
+COMFI is designed to work in concert with the VIPER and [PEANuT](https://github.com/FalkoHof/PEANuT) plugins.
 
 ## Installation and setup guide
 
